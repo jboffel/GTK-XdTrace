@@ -40,6 +40,9 @@ Then I setted in the windows release a memory limit of 2Gb.
 
 Also in php.ini of your application, when using trace, you should set a higher max execution time than 30s to not miss end of the trace fiel.
 
+To view source file, all files must be in same folder than when the file trace was generated.
+In later update, I'll add support for change on the fly a part of path to file to make possible to read a tracefile generated on another computer as long as the working directory remain same.
+
 Interface looks like that :
 
 ![Alt text](screenshoot.png)

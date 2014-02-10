@@ -41,3 +41,7 @@ Then I setted in the windows release a memory limit of 2Gb.
 
 Also in php.ini of your application, when using trace, you should set a higher max execution time than 30s to not miss end of the trace fiel.
 
+Interface looks like that :
+
+![Alt text](screenshoot.png)
+

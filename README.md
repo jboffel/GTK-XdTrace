@@ -22,3 +22,17 @@ trace file will only show you lines $test = calltofunc(); and calltofunc2($res);
 
 But as you know what is parameters value and return value of functions, you can mostly guessed where you passed.
 
+I recommend that configuration for Xdebug trace parameters :
+
+xdebug.trace_enable_trigger = 1
+xdebug.trace_format = 0
+xdebug.trace_output_dir = "C:\Users\JEANBOFF\xampp\tmp"
+xdebug.trace_output_name = "xdebug_trace.%p.%s.%u"
+xdebug.collect_params = 4
+xdebug.show_mem_delta = 1
+xdebug.collect_return = 1
+
+But becarefull, when collecting parameters, execution time will be much more longer and size of the file could be several 100Mo.
+Then I setted in the windows release a memory limit of 2Gb.
+
+Also in php.ini of your application, when using trace, you should set a higher max execution time than 30s to not miss end of the trace fiel.

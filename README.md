@@ -8,19 +8,17 @@ Despite that, I believe it give a good overview of where we passed in the source
 
 For example if you have source code like that :
 
+<pre><code>
 $test = calltofunc();
 
 if($test) {
-
     $res = 0;
-    
 } else {
-
     $res = 1;
-    
 }
 
 calltofunc2($res);
+</code></pre>
 
 trace file will only show you lines $test = calltofunc(); and calltofunc2($res);
 
@@ -28,21 +26,18 @@ But as you know what is parameters value and return value of functions, you can 
 
 I recommend that configuration for Xdebug trace parameters :
 
+<pre>
 xdebug.trace_enable_trigger = 1
-
 xdebug.trace_format = 0
-
 xdebug.trace_output_dir = "C:\Users\JEANBOFF\xampp\tmp"
-
 xdebug.trace_output_name = "xdebug_trace.%p.%s.%u"
-
 xdebug.collect_params = 4
-
 xdebug.show_mem_delta = 1
-
 xdebug.collect_return = 1
+</pre>
 
 But becarefull, when collecting parameters, execution time will be much more longer and size of the file could be several 100Mo.
 Then I setted in the windows release a memory limit of 2Gb.
 
 Also in php.ini of your application, when using trace, you should set a higher max execution time than 30s to not miss end of the trace fiel.
+

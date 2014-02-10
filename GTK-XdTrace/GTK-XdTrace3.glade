@@ -1,0 +1,326 @@
+<?xml version="1.0"?>
+<glade-interface>
+  <!-- interface-requires gtk+ 2.10 -->
+  <!-- interface-naming-policy project-wide -->
+  <widget class="GtkWindow" id="window1">
+    <property name="visible">True</property>
+    <child>
+      <widget class="GtkLayout" id="layout1">
+        <property name="width_request">1024</property>
+        <property name="height_request">768</property>
+        <property name="visible">True</property>
+        <child>
+          <widget class="GtkLabel" id="label1">
+            <property name="width_request">162</property>
+            <property name="height_request">20</property>
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">Memory Usage</property>
+          </widget>
+          <packing>
+            <property name="x">700</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkLabel" id="label2">
+            <property name="width_request">162</property>
+            <property name="height_request">20</property>
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">Time</property>
+          </widget>
+          <packing>
+            <property name="x">862</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkTextView" id="memoryusage">
+            <property name="width_request">161</property>
+            <property name="height_request">20</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="editable">False</property>
+            <property name="cursor_visible">False</property>
+            <property name="accepts_tab">False</property>
+          </widget>
+          <packing>
+            <property name="x">701</property>
+            <property name="y">20</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkTextView" id="time">
+            <property name="width_request">161</property>
+            <property name="height_request">20</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="editable">False</property>
+            <property name="cursor_visible">False</property>
+            <property name="accepts_tab">False</property>
+          </widget>
+          <packing>
+            <property name="x">863</property>
+            <property name="y">20</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkScrolledWindow" id="scrolledwindow1">
+            <property name="width_request">700</property>
+            <property name="height_request">768</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">automatic</property>
+            <property name="vscrollbar_policy">automatic</property>
+            <child>
+              <widget class="GtkTextView" id="sourcecode">
+                <property name="width_request">700</property>
+                <property name="height_request">768</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="editable">False</property>
+              </widget>
+            </child>
+          </widget>
+        </child>
+        <child>
+          <widget class="GtkComboBox" id="steptofile">
+            <property name="width_request">162</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="items" translatable="yes">List of breakpointed files</property>
+            <signal name="changed" handler="showStepsInCB2"/>
+          </widget>
+          <packing>
+            <property name="x">700</property>
+            <property name="y">90</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkComboBox" id="steptostepline">
+            <property name="width_request">162</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="items" translatable="yes">Breakpoints in file</property>
+            <signal name="changed" handler="showComboStep"/>
+          </widget>
+          <packing>
+            <property name="x">862</property>
+            <property name="y">90</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkLabel" id="label3">
+            <property name="width_request">324</property>
+            <property name="height_request">20</property>
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">Jump to breakpoint of file-&gt;step/line</property>
+          </widget>
+          <packing>
+            <property name="x">700</property>
+            <property name="y">70</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkButton" id="stepin">
+            <property name="label" translatable="yes">StepIn</property>
+            <property name="width_request">54</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <signal name="clicked" handler="stepin"/>
+          </widget>
+          <packing>
+            <property name="x">700</property>
+            <property name="y">121</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkButton" id="stepover">
+            <property name="label" translatable="yes">StepOv</property>
+            <property name="width_request">54</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <property name="tooltip" translatable="yes">textview1</property>
+            <signal name="clicked" handler="stepover"/>
+          </widget>
+          <packing>
+            <property name="x">754</property>
+            <property name="y">121</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkButton" id="stepreturn">
+            <property name="label" translatable="yes">StepRt</property>
+            <property name="width_request">54</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <signal name="clicked" handler="stepreturn"/>
+          </widget>
+          <packing>
+            <property name="x">808</property>
+            <property name="y">121</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkButton" id="backin">
+            <property name="label" translatable="yes">BackIn</property>
+            <property name="width_request">54</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <signal name="clicked" handler="backin"/>
+          </widget>
+          <packing>
+            <property name="x">862</property>
+            <property name="y">121</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkButton" id="backover">
+            <property name="label" translatable="yes">BackOv</property>
+            <property name="width_request">54</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <signal name="clicked" handler="backover"/>
+          </widget>
+          <packing>
+            <property name="x">916</property>
+            <property name="y">121</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkButton" id="backreturn">
+            <property name="label" translatable="yes">BackRt</property>
+            <property name="width_request">54</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <signal name="clicked" handler="backreturn"/>
+          </widget>
+          <packing>
+            <property name="x">970</property>
+            <property name="y">121</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkEntry" id="jumptostep">
+            <property name="width_request">80</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="invisible_char">&#x25CF;</property>
+          </widget>
+          <packing>
+            <property name="x">800</property>
+            <property name="y">151</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkLabel" id="label4">
+            <property name="width_request">100</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">Jump to Step:</property>
+          </widget>
+          <packing>
+            <property name="x">700</property>
+            <property name="y">151</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkLabel" id="totalsteps">
+            <property name="width_request">102</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">Current Step</property>
+          </widget>
+          <packing>
+            <property name="x">922</property>
+            <property name="y">151</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkScrolledWindow" id="scrolledwindow2">
+            <property name="width_request">323</property>
+            <property name="height_request">292</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">never</property>
+            <property name="vscrollbar_policy">automatic</property>
+            <child>
+              <widget class="GtkTextView" id="currentinstruction">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="editable">False</property>
+                <property name="wrap_mode">word</property>
+                <property name="text" translatable="yes">Executed instruction</property>
+              </widget>
+            </child>
+          </widget>
+          <packing>
+            <property name="x">701</property>
+            <property name="y">182</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkScrolledWindow" id="scrolledwindow3">
+            <property name="width_request">323</property>
+            <property name="height_request">292</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">never</property>
+            <property name="vscrollbar_policy">automatic</property>
+            <child>
+              <widget class="GtkTextView" id="returncurrentinstruction">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="editable">False</property>
+                <property name="wrap_mode">word</property>
+                <property name="text" translatable="yes">Return from intruction execution</property>
+              </widget>
+            </child>
+          </widget>
+          <packing>
+            <property name="x">701</property>
+            <property name="y">476</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkFileChooserButton" id="choosetracefile">
+            <property name="width_request">324</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <signal name="file_set" handler="openFile"/>
+          </widget>
+          <packing>
+            <property name="x">700</property>
+            <property name="y">40</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkButton" id="validentry">
+            <property name="label" translatable="yes">-&gt;</property>
+            <property name="width_request">40</property>
+            <property name="height_request">30</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <property name="yalign">0</property>
+            <signal name="clicked" handler="jump"/>
+          </widget>
+          <packing>
+            <property name="x">881</property>
+            <property name="y">151</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+</glade-interface>

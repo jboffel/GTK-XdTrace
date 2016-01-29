@@ -282,7 +282,7 @@ class GTK_XdTrace
                     );
                     $this->globalFileNameListInOrder[] = $steps[6];
                 }
-                $res = preg_match('/^(\s+)>=>\s(.*)$/', $buffer, $retValue);
+                $res = preg_match('/^(\s+([0-9.]+)\s+([0-9]+)\s+)>=>\s(.*)$/', $buffer, $retValue);
                 if ($res) {
 //                     $this->retValue[] = array(
 //                         'treeLevel' => (strlen($retValue[1]) - $padding) / 2, 
@@ -296,7 +296,7 @@ class GTK_XdTrace
                             break;
                         }
                     }
-                    $this->steps[$w]['returnValue'] = $retValue[2];
+                    $this->steps[$w]['returnValue'] = $retValue[4];
                 }
                 if ($i == 1) {
                     $padding = strlen($buffer) - strlen(strstr($buffer, '->'));

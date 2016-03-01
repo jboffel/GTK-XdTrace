@@ -4,6 +4,7 @@
   <!-- interface-naming-policy project-wide -->
   <widget class="GtkWindow" id="window1">
     <property name="visible">True</property>
+    <property name="resizable">False</property>
     <child>
       <widget class="GtkLayout" id="layout1">
         <property name="width_request">1024</property>
@@ -64,7 +65,7 @@
         <child>
           <widget class="GtkScrolledWindow" id="scrolledwindow1">
             <property name="width_request">700</property>
-            <property name="height_request">768</property>
+            <property name="height_request">730</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="hscrollbar_policy">automatic</property>
@@ -79,6 +80,9 @@
               </widget>
             </child>
           </widget>
+          <packing>
+            <property name="y">38</property>
+          </packing>
         </child>
         <child>
           <widget class="GtkComboBox" id="steptofile">
@@ -319,6 +323,37 @@
             <property name="x">881</property>
             <property name="y">151</property>
           </packing>
+        </child>
+        <child>
+          <widget class="GtkHBox" id="hbox1">
+            <property name="width_request">700</property>
+            <property name="height_request">40</property>
+            <property name="visible">True</property>
+            <child>
+              <widget class="GtkComboBox" id="mapfolderprefix">
+                <property name="width_request">162</property>
+                <property name="height_request">28</property>
+                <property name="visible">True</property>
+                <property name="items" translatable="yes">List of folder mappable</property>
+                <signal name="changed" handler="showMapFileChooserBox"/>
+              </widget>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkComboBox" id="listofmap">
+                <property name="width_request">162</property>
+                <property name="height_request">28</property>
+                <property name="visible">True</property>
+                <property name="items" translatable="yes">List of existing map</property>
+                <signal name="changed" handler="deleteOneMapping"/>
+              </widget>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </widget>
         </child>
       </widget>
     </child>

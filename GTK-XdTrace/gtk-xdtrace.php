@@ -269,41 +269,6 @@ class GTK_XdTrace
         return $filename;
     }
 
-    // public function followScroll ()
-    // {
-    // $adj = $this->glade->get_widget('scrolledwindow1')
-    // ->get_vadjustment();
-
-    // $min = $adj->lower;
-    // $max = $adj->upper;
-
-    // print_r($min);
-    // echo "\n";
-    // print_r($max);
-    // echo "\n";
-    // print_r($adj->page_size);
-    // echo "\n";
-
-    // $percent = $this->steps[$this->pointer]['line'] /
-    // count($this->currentFile) * 100;
-
-    // print_r($percent);
-    // echo "\n";
-
-    // $adjValue = ($max * $percent) / 100 - $adj->page_size / 2;
-
-    // print_r($adjValue);
-    // echo "\n";
-    // print_r($adj->get_value());
-    // echo "\n";
-
-    // if ($adjValue >= 0)
-    // $adj->set_value($adjValue);
-
-    // $scroll = $this->glade->get_widget('scrolledwindow1')
-    // ->set_vadjustment($adj);
-
-    // }
     protected function showStoryStep ($step)
     {
         if ($step < 0 || $step > count($this->steps))
@@ -361,7 +326,7 @@ class GTK_XdTrace
         $buffer = $this->glade->get_widget('currentinstruction')
             ->get_buffer();
 
-        $buffer->set_text($this->steps[$step]['fonction']);
+        $buffer->set_text($this->steps[$step]['function']);
 
         $buffer = $this->glade->get_widget('returncurrentinstruction')
             ->get_buffer();
@@ -370,8 +335,6 @@ class GTK_XdTrace
 
         $this->glade->get_widget('totalsteps')
             ->set_text($step . '/' . count($this->steps));
-
-        // $this->followScroll();
     }
 
     public function jump ()
@@ -395,7 +358,6 @@ class GTK_XdTrace
     protected function processTraceFile ()
     {
         $this->steps = array();
-//         $this->retValue = array();
 
         $handle = @fopen($this->fileName, "r");
         if ($handle) {
@@ -411,7 +373,7 @@ class GTK_XdTrace
                         'memoryUsage' => $steps[2],
                         'memoryDelta' => $steps[3],
                         'treeLevel' => (strlen($steps[4]) - 3) / 2,
-                        'fonction' => $steps[5],
+                        'function' => $steps[5],
                         'filename' => str_replace(DIRECTORY_SEPARATOR, '/', $steps[6]),
                         'line' => $steps[7],
                         'line2' => $i,

@@ -314,14 +314,16 @@ class GTK_XdTrace
         $buffer = $this->glade->get_widget('sourcecode')
             ->get_buffer();
 
-        $buffer->set_text($file = file_get_contents($filename));
+        $fileArray = file($filename);
+
+        $buffer->set_text(implode("", $fileArray));
 
         $this->glade->get_widget('window1')
             ->set_title($this->steps[$step]['filename']);
 
-        $this->currentFile = $fileArray = file($filename);
+        $this->currentFile = $fileArray;
 
-        $position = $buffer->get_iter_at_line($this->steps[$step]['line']);
+        $position = $buffer->get_iter_at_line($this->steps[$step]['line']-1);
 
         $buffer->place_cursor($position);
 
@@ -330,14 +332,14 @@ class GTK_XdTrace
         $blue_tag->set_property('background', "#ff00ff");
         $tag_table->add($blue_tag);
 
-        $offsetStart = 0;
+        $start = $position;
+        $length = strlen($fileArray[$this->steps[$step]['line']-1])-1;
 
-        for ($i = 0; $i < $this->steps[$step]['line'] - 1; $i ++) {
-            $offsetStart += strlen($fileArray[$i]);
-        }
+        //If couldn't find the file...
+        if($length<0)
+            $length = 0;
 
-        $start = $buffer->get_iter_at_offset($offsetStart);
-        $end = $buffer->get_iter_at_offset($offsetStart + strlen($fileArray[$i]));
+        $end = $buffer->get_iter_at_line_offset($this->steps[$step]['line']-1, $length);
 
         $buffer->apply_tag($blue_tag, $start, $end);
 
@@ -420,8 +422,8 @@ class GTK_XdTrace
                 $res = preg_match('/^(\s+([0-9.]+)\s+([0-9]+)\s+)>=>\s(.*)$/', $buffer, $retValue);
                 if ($res) {
 //                     $this->retValue[] = array(
-//                         'treeLevel' => (strlen($retValue[1]) - $padding) / 2, 
-//                         'retValue' => $retValue[2], 
+//                         'treeLevel' => (strlen($retValue[1]) - $padding) / 2,
+//                         'retValue' => $retValue[2],
 //                         'line' => $i
 //                     );
                     for ($w = count($this->steps) - 1; $w > 0; $w --) {

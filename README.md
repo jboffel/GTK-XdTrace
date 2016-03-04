@@ -35,12 +35,14 @@ xdebug.show_mem_delta = 1
 xdebug.collect_return = 1
 </pre>
 
-But becarefull, when collecting parameters, execution time will be much more longer and size of the file could be several 100Mo.
-Then I setted in the windows release a memory limit of 2Gb.
+Be careful, when collecting parameters, execution time will be much more longer and size of the file could be several 100MB.
+Then I set in the windows release a memory limit of 2GB. Expect a loading time of few seconds for a file of 50MB.
 
-Also in php.ini of your application, when using trace, you should set a higher max execution time than 30s to not miss end of the trace fiel.
+A progress bar will indicate you the loading speed.
 
-To view source file, all files must be in same folder than when the file trace was generated.
+Also in php.ini of your application, when using trace, you should set a higher max execution time than 30s to not miss end of the trace file.
+
+To view source file, all files must be in same folder than when the file trace was generated or you will need to add mapping of path between your local machine and origin machine.
 In later update, I'll add support for change on the fly a part of path to file to make possible to read a tracefile generated on another computer as long as the working directory remain same.
 
 Interface looks like that :

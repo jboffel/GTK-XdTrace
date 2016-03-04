@@ -20,6 +20,14 @@ class GTK_XdTrace
 
     protected $listOfMapping = array();
 
+    protected $currentProgress = 0;
+
+    protected $progressBar = null;
+
+    protected $dialog = null;
+
+    protected $time = 0;
+
     function __construct ($glade)
     {
         $this->glade = $glade;
@@ -48,9 +56,21 @@ class GTK_XdTrace
 
         $this->listOfMapping = array();
 
+        $this->currentProgress = 0;
+
+        $this->progressBar = null;
+
+        $this->dialog = null;
+
+        $this->time = 0;
+
         $this->fileName = $obj->get_filename();
 
+        $this->startProgressBar();
+
         $this->processTraceFile();
+
+        $this->stopProgressBar();
 
         $this->showFileStepList();
 
@@ -355,6 +375,47 @@ class GTK_XdTrace
         $this->pointer = $step;
     }
 
+    protected function startProgressBar()
+    {
+        $dialog = new GtkDialog('Work in progress...',
+            null, Gtk::DIALOG_MODAL); // create a new dialog
+        $top_area = $dialog->vbox;
+        $top_area->pack_start(new GtkLabel(
+            'Please hold on while processing data...'));
+        $this->progressBar = new GtkProgressBar();
+        $this->progressBar->set_orientation(Gtk::PROGRESS_LEFT_TO_RIGHT);
+        $top_area->pack_start($this->progressBar, 0, 0);
+        $dialog->set_has_separator(false);
+        $dialog->show_all(); // show the dialog
+        $this->dialog = $dialog; // keep a copy of the dialog ID
+
+        $dialog->connect('delete-event',
+            array( &$this, "onDeleteEvent")); // note 3
+
+        while (Gtk::events_pending()) {Gtk::main_iteration();}
+    }
+
+    // function that is called when user closes the progress bar dialog
+    public function onDeleteEvent($widget, $event) {
+        $this->dialog->destroy(); // close the dialog
+        // any other clean-up that you may want to do
+        return true;
+    }
+
+    protected function stopProgressBar()
+    {
+        $this->dialog->destroy(); // yes, all done. close the dialog
+    }
+
+    protected function updateProgressBar()
+    {
+        $this->progressBar->set_fraction($this->currentProgress);
+        $this->progressBar->set_text(
+            number_format($this->currentProgress*100, 0).'% Complete');
+
+        do {Gtk::main_iteration();} while (Gtk::events_pending());
+    }
+
     protected function processTraceFile ()
     {
         $this->steps = array();
@@ -364,7 +425,19 @@ class GTK_XdTrace
             $i = 0;
             $padding = 0;
             $offset = 0;
+            $stats = fstat($handle);
+            $fileSize = $stats['size'];
+            $currentPercent = 0;
+            $lastPercent = 0;
+
             while (($buffer = fgets($handle)) !== false) {
+                $offset += strlen($buffer);
+                $this->currentProgress = $offset / $fileSize;
+                $currentPercent = round($this->currentProgress * 100);
+                if ($currentPercent > $lastPercent && $currentPercent % 2 == 0) {
+                    $lastPercent = $currentPercent;
+                    $this->updateProgressBar();
+                }
                 $res = preg_match('/^\s+([0-9.]+)\s+([0-9]+)\s+([0-9+-]+)(\s+)->\s+(.*)\s(.*):([0-9]+).*$/', $buffer,
                     $steps);
                 if ($res) {

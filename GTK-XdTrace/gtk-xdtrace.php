@@ -26,6 +26,8 @@ class GTK_XdTrace
 
     protected $dialog = null;
 
+    protected $folderToMap = array();
+
     protected $time = 0;
 
     function __construct ($glade)
@@ -64,6 +66,8 @@ class GTK_XdTrace
 
         $this->time = 0;
 
+        $this->folderToMap = array();
+
         $this->fileName = $obj->get_filename();
 
         $this->startProgressBar();
@@ -92,6 +96,33 @@ class GTK_XdTrace
         }
     }
 
+    public function on_match_selected($widget, $model, $iter)
+    {
+        $folder = $model->get_value($iter, 0);
+
+        $combo = $this->glade->get_widget('mapfolderprefix');
+
+        $index = array_search($folder, $this->folderToMap);
+
+        if ($index === false) {
+            return;
+        }
+
+        $combo->set_active($index+1);
+
+        $this->showMapFileChooserBox();
+
+    }
+
+    function match_func($completion, $key_string, $iter, $data) {
+        $model = $completion->get_model();
+
+        if(stristr($model->get_value($iter, 0), $key_string)) {
+            return true;
+        }
+        return false;
+    }
+
     protected function buildListOfFolders($folderList)
     {
 
@@ -108,7 +139,7 @@ class GTK_XdTrace
 
         sort($tmp);
 
-        return array_unique($tmp);
+        return array_merge(array_unique($tmp));
     }
 
     protected function showFolderToMap ()
@@ -127,6 +158,25 @@ class GTK_XdTrace
         }
 
         $combo->set_active(0);
+
+        $combo = $this->glade->get_widget('entrycompletion1');
+
+        $entry = $this->glade->get_widget('selectfolderinlist');
+
+        $entry->set_completion($combo);
+
+        $model = new GtkListStore(Gobject::TYPE_STRING);
+        $combo->set_model($model);
+        $combo->set_text_column(0);
+        $combo->set_match_func(array(&$this, "match_func"));
+        $combo->set_popup_set_width(false);
+        $combo->connect('match-selected', array(&$this, 'on_match_selected'));
+
+        foreach($tmp as $key => $fileName) {
+            $model->append(array($fileName));
+        }
+
+        $this->folderToMap = $tmp;
     }
 
     public function showMapFileChooserBox()
@@ -427,7 +477,6 @@ class GTK_XdTrace
             $offset = 0;
             $stats = fstat($handle);
             $fileSize = $stats['size'];
-            $currentPercent = 0;
             $lastPercent = 0;
 
             while (($buffer = fgets($handle)) !== false) {

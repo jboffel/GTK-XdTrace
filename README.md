@@ -43,7 +43,16 @@ A progress bar will indicate you the loading speed.
 Also in php.ini of your application, when using trace, you should set a higher max execution time than 30s to not miss end of the trace file.
 
 To view source file, all files must be in same folder than when the file trace was generated or you will need to add mapping of path between your local machine and origin machine.
-In later update, I'll add support for change on the fly a part of path to file to make possible to read a tracefile generated on another computer as long as the working directory remain same.
+
+Each step represent a function call and they are ordered according to the normal progression in the code.
+
+A function call can be internal PHP function or user land PHP function.
+
+Important information on the Jump to breakpoint of file->step/line. It will only show the first time you pass on the line of the file.
+For example it means that if you have a loop on a function calling 100 times that function from the same line of code then you will only see one occurrence in the list.
+Another example would be simply you call from 2 different places the same piece of code so only the first time you pass in will be reported in the list.
+
+This is in order to prevent unlimited size list which would make it unusable whatever.
 
 Interface looks like that :
 

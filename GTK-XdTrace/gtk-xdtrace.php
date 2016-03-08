@@ -80,6 +80,8 @@ class GTK_XdTrace
 
         $this->showFolderToMap();
 
+        $this->fillListOfMap();
+
         $this->startShowStory();
     }
 

@@ -28,6 +28,8 @@ class GTK_XdTrace
 
     protected $folderToMap = array();
 
+    protected $folderToMapBkP = array();
+
     protected $time = 0;
 
     function __construct ($glade)
@@ -68,6 +70,8 @@ class GTK_XdTrace
 
         $this->folderToMap = array();
 
+        $this->folderToMapBkP = array();
+
         $this->fileName = $obj->get_filename();
 
         $this->startProgressBar();
@@ -91,14 +95,34 @@ class GTK_XdTrace
         $store = new GtkListStore(Gobject::TYPE_STRING);
         $combo->set_model($store);
 
-        $tmp = array_unique($this->globalFileNameListInOrder);
+        $tmp = array_merge(array_unique($this->globalFileNameListInOrder));
 
         foreach ($tmp as $key => $fileName) {
             $combo->append_text($fileName);
         }
+
+        $combo = new GtkEntryCompletion();
+
+        $entry = $this->glade->get_widget('selectfolderautocomplete');
+
+        $entry->set_completion($combo);
+
+        $model = new GtkListStore(Gobject::TYPE_STRING);
+
+        $combo->set_model($model);
+        $combo->set_text_column(0);
+        $combo->set_match_func(array(&$this, "matchFunc"));
+        $combo->set_popup_set_width(false);
+        $combo->connect('match-selected', array(&$this, 'onMatchSelectedBkP'));
+
+        foreach($tmp as $key => $fileName) {
+            $model->append(array($fileName));
+        }
+
+        $this->folderToMapBkP = $tmp;
     }
 
-    public function on_match_selected($widget, $model, $iter)
+    public function onMatchSelected($widget, $model, $iter)
     {
         $folder = $model->get_value($iter, 0);
 
@@ -116,7 +140,25 @@ class GTK_XdTrace
 
     }
 
-    function match_func($completion, $key_string, $iter, $data) {
+    public function onMatchSelectedBkP($widget, $model, $iter)
+    {
+        $folder = $model->get_value($iter, 0);
+
+        $combo = $this->glade->get_widget('steptofile');
+
+        $index = array_search($folder, $this->folderToMapBkP);
+
+        if ($index === false) {
+            return;
+        }
+
+        $combo->set_active($index);
+
+        $this->showStepsInCB2();
+
+    }
+
+    function matchFunc($completion, $key_string, $iter, $data) {
         $model = $completion->get_model();
 
         if(stristr($model->get_value($iter, 0), $key_string)) {
@@ -161,7 +203,7 @@ class GTK_XdTrace
 
         $combo->set_active(0);
 
-        $combo = $this->glade->get_widget('entrycompletion1');
+        $combo = new GtkEntryCompletion();
 
         $entry = $this->glade->get_widget('selectfolderinlist');
 
@@ -170,9 +212,9 @@ class GTK_XdTrace
         $model = new GtkListStore(Gobject::TYPE_STRING);
         $combo->set_model($model);
         $combo->set_text_column(0);
-        $combo->set_match_func(array(&$this, "match_func"));
+        $combo->set_match_func(array(&$this, "matchFunc"));
         $combo->set_popup_set_width(false);
-        $combo->connect('match-selected', array(&$this, 'on_match_selected'));
+        $combo->connect('match-selected', array(&$this, 'onMatchSelected'));
 
         foreach($tmp as $key => $fileName) {
             $model->append(array($fileName));

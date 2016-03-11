@@ -13,7 +13,6 @@
         <child>
           <widget class="GtkVBox" id="vbox1">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
             <child>
               <widget class="GtkHBox" id="hbox2">
                 <property name="visible">True</property>
@@ -87,7 +86,6 @@
         <child>
           <widget class="GtkVBox" id="vbox2">
             <property name="visible">True</property>
-            <property name="orientation">vertical</property>
             <property name="spacing">1</property>
             <child>
               <widget class="GtkHBox" id="hbox3">

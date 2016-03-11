@@ -34,6 +34,7 @@
                     <property name="width_request">50</property>
                     <property name="height_request">30</property>
                     <property name="visible">True</property>
+                    <property name="wrap_width">1</property>
                     <property name="items" translatable="yes">List of folder mappable</property>
                     <signal name="changed" handler="showMapFileChooserBox"/>
                   </widget>
@@ -46,6 +47,7 @@
                     <property name="width_request">50</property>
                     <property name="height_request">30</property>
                     <property name="visible">True</property>
+                    <property name="wrap_width">1</property>
                     <property name="items" translatable="yes">List of existing map</property>
                     <signal name="changed" handler="deleteOneMapping"/>
                   </widget>
@@ -66,7 +68,7 @@
                 <property name="hscrollbar_policy">automatic</property>
                 <property name="vscrollbar_policy">automatic</property>
                 <child>
-                  <widget class="GtkTextView" id="sourcecode">
+                  <widget class="GtkSourceView" id="sourcecode">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="editable">False</property>
@@ -187,6 +189,7 @@
                   <widget class="GtkComboBox" id="steptofile">
                     <property name="width_request">60</property>
                     <property name="visible">True</property>
+                    <property name="wrap_width">1</property>
                     <property name="items" translatable="yes">List of breakpointed files</property>
                     <signal name="changed" handler="showStepsInCB2"/>
                   </widget>
@@ -198,6 +201,7 @@
                   <widget class="GtkComboBox" id="steptostepline">
                     <property name="width_request">60</property>
                     <property name="visible">True</property>
+                    <property name="wrap_width">1</property>
                     <property name="items" translatable="yes">Breakpoints in file</property>
                     <signal name="changed" handler="showComboStep"/>
                   </widget>

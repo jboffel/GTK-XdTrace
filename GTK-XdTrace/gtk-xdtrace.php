@@ -32,6 +32,8 @@ class GTK_XdTrace
 
     protected $time = 0;
 
+    protected $previousFile = array();
+
     function __construct ($glade)
     {
         $this->glade = $glade;
@@ -73,6 +75,8 @@ class GTK_XdTrace
         $this->folderToMapBkP = array();
 
         $this->fileName = $obj->get_filename();
+
+        $this->previousFile = array();
 
         $this->startProgressBar();
 
@@ -158,7 +162,7 @@ class GTK_XdTrace
 
     }
 
-    function matchFunc($completion, $key_string, $iter, $data) {
+    function matchFunc($completion, $key_string, $iter) {
         $model = $completion->get_model();
 
         if(stristr($model->get_value($iter, 0), $key_string)) {
@@ -186,13 +190,17 @@ class GTK_XdTrace
         return array_merge(array_unique($tmp));
     }
 
+    protected function myDirname($value, $key) {
+        return dirname($value);
+    }
+
     protected function showFolderToMap ()
     {
         $combo = $this->glade->get_widget('mapfolderprefix');
         $store = new GtkListStore(Gobject::TYPE_STRING);
         $combo->set_model($store);
         $tmp = array_unique($this->globalFileNameListInOrder);
-        array_walk($tmp, 'dirname');
+        array_walk($tmp, array(&$this, 'myDirname'));
         $tmp = array_unique($tmp);
         $tmp = $this->buildListOfFolders($tmp);
 
@@ -390,12 +398,42 @@ class GTK_XdTrace
 
         $filename = $this->mapTransform($this->steps[$step]['filename']);
 
-        $buffer = $this->glade->get_widget('sourcecode')
-            ->get_buffer();
+        if ($this->previousFile['name'] != $filename) {
+            $this->previousFile['name'] = $filename;
 
-        $fileArray = file($filename);
+            $lang_mgr = new GtkSourceLanguagesManager();
+            $lang = $lang_mgr->get_language_from_mime_type("application/x-php");
+            $buffer = GtkSourceBuffer::new_with_language($lang);
+            $buffer->set_highlight(1);
+            $view = $this->glade->get_widget('sourcecode');
+            $view->set_buffer($buffer);
 
-        $buffer->set_text(implode("", $fileArray));
+
+            $fileArray = @file($filename);
+
+            $this->previousFile['fileArray'] = $fileArray;
+
+            if (!is_array($fileArray)) {
+                $buffer->set_text("");
+            } else {
+                $buffer->set_text(implode("", $fileArray));
+            }
+
+            $view->set_show_line_numbers(1);
+
+            $tag_table = $buffer->get_tag_table();
+            $blue_tag = new GtkTextTag('colorLine');
+            $blue_tag->set_property('background', "#f2e911");
+            $tag_table->add($blue_tag);
+        } else {
+
+            $fileArray = $this->previousFile['fileArray'];
+
+            $buffer = $this->glade->get_widget('sourcecode')->get_buffer();
+            $buffer->remove_all_tags($buffer->get_start_iter(), $buffer->get_end_iter());
+            $tag_table = $buffer->get_tag_table();
+            $blue_tag = $tag_table->lookup('colorLine');
+        }
 
         $this->glade->get_widget('window1')
             ->set_title($this->steps[$step]['filename']);
@@ -405,11 +443,6 @@ class GTK_XdTrace
         $position = $buffer->get_iter_at_line($this->steps[$step]['line']-1);
 
         $buffer->place_cursor($position);
-
-        $tag_table = $buffer->get_tag_table();
-        $blue_tag = new GtkTextTag();
-        $blue_tag->set_property('background', "#ff00ff");
-        $tag_table->add($blue_tag);
 
         $start = $position;
         $length = strlen($fileArray[$this->steps[$step]['line']-1])-1;

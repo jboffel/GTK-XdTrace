@@ -430,9 +430,11 @@ class GTK_XdTrace
             $fileArray = $this->previousFile['fileArray'];
 
             $buffer = $this->glade->get_widget('sourcecode')->get_buffer();
-            $buffer->remove_all_tags($buffer->get_start_iter(), $buffer->get_end_iter());
+
             $tag_table = $buffer->get_tag_table();
             $blue_tag = $tag_table->lookup('colorLine');
+
+            $buffer->remove_tag($blue_tag, $buffer->get_start_iter(), $buffer->get_end_iter());
         }
 
         $this->glade->get_widget('window1')

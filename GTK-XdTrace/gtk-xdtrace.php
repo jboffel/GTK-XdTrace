@@ -391,6 +391,7 @@ class GTK_XdTrace
         return $filename;
     }
 
+
     protected function showStoryStep ($step)
     {
         if ($step < 0 || $step > count($this->steps))
@@ -484,6 +485,11 @@ class GTK_XdTrace
 
         $this->glade->get_widget('totalsteps')
             ->set_text($step . '/' . count($this->steps));
+
+        $buffer = $this->glade->get_widget('stacktrace')
+            ->get_buffer();
+
+        $buffer->set_text($this->generateStepStackTrace($step));
     }
 
     public function jump ()
@@ -543,6 +549,25 @@ class GTK_XdTrace
             number_format($this->currentProgress*100, 0).'% Complete');
 
         do {Gtk::main_iteration();} while (Gtk::events_pending());
+    }
+
+    protected function generateStepStackTrace($stepIndex)
+    {
+        $stackTrace = "";
+        $functionCount = 0;
+
+        $treeLevel = $this->steps[$stepIndex]['treeLevel'];
+
+        for ($i = $stepIndex; $i > 0; $i --) {
+            $subTreeLevel = $this->steps[$i]['treeLevel'];
+            if ($subTreeLevel < $treeLevel || $treeLevel == 1) {
+                $treeLevel = $subTreeLevel;
+                $stackTrace .= "#" . $functionCount . "  " . substr($this->steps[$i]['function'], 0, strpos($this->steps[$i]['function'], '(')) . "() called at [" . $this->steps[$i]['filename'] . ":" . $this->steps[$i]['line'] . "]\n";
+                $functionCount++;
+            }
+        }
+
+        return $stackTrace;
     }
 
     protected function processTraceFile ()

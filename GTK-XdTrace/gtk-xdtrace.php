@@ -558,9 +558,9 @@ class GTK_XdTrace
 
         $treeLevel = $this->steps[$stepIndex]['treeLevel'];
 
-        for ($i = $stepIndex; $i > 0; $i --) {
+        for ($i = $stepIndex - 1; $i > 0; $i --) {
             $subTreeLevel = $this->steps[$i]['treeLevel'];
-            if ($subTreeLevel < $treeLevel || $treeLevel == 1) {
+            if ($subTreeLevel < $treeLevel) {
                 $treeLevel = $subTreeLevel;
                 $stackTrace .= "#" . $functionCount . "  " . substr($this->steps[$i]['function'], 0, strpos($this->steps[$i]['function'], '(')) . "() called at [" . $this->steps[$i]['filename'] . ":" . $this->steps[$i]['line'] . "]\n";
                 $functionCount++;

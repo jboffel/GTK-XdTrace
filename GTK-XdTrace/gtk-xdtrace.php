@@ -34,6 +34,8 @@ class GTK_XdTrace
 
     protected $previousFile = array();
 
+    protected $stackLinksInfo = array();
+
     function __construct ($glade)
     {
         $this->glade = $glade;
@@ -46,6 +48,8 @@ class GTK_XdTrace
         $combo->set_active(0);
         $combo = $this->glade->get_widget('listofmap');
         $combo->set_active(0);
+
+        $this->count = 0;
     }
 
     public function openFile ($obj)
@@ -77,6 +81,8 @@ class GTK_XdTrace
         $this->fileName = $obj->get_filename();
 
         $this->previousFile = array();
+
+        $this->stackLinksInfo = array();
 
         $this->startProgressBar();
 
@@ -486,10 +492,43 @@ class GTK_XdTrace
         $this->glade->get_widget('totalsteps')
             ->set_text($step . '/' . count($this->steps));
 
+        $stackDetails = $this->generateStepStackTrace($step);
+
         $buffer = $this->glade->get_widget('stacktrace')
             ->get_buffer();
 
-        $buffer->set_text($this->generateStepStackTrace($step));
+        $tag_table = $buffer->get_tag_table();
+
+        $link_tag = $tag_table->lookup('link');
+
+        if ($link_tag === NULL) {
+            $link_tag = new GtkTextTag('link');
+            $link_tag->set_property('foreground', "#0000ff");
+            $link_tag->set_property('underline', Pango::UNDERLINE_SINGLE);
+            $tag_table->add($link_tag);
+            $link_tag->connect('event',
+                array( &$this, "onTagLinkEvent"));
+        } else {
+            $buffer->remove_tag($link_tag, $buffer->get_start_iter(), $buffer->get_end_iter());
+        }
+
+        $buffer->set_text($stackDetails['buffer']);
+
+        foreach($stackDetails['linksInformation'] as $link) {
+            $buffer->apply_tag($link_tag, $buffer->get_iter_at_offset($link['startOffset']), $buffer->get_iter_at_offset($link['endOffset']));
+        }
+
+        $this->stackLinksInfo['url'] = $stackDetails['linksInformation'];
+        $this->stackLinksInfo['tag'] = $link_tag;
+    }
+
+    public function onTagLinkEvent($textTag, $gtkObject, $event, $textIter)
+    {
+        if ($event->type == Gdk::BUTTON_RELEASE && $textIter->has_tag($this->stackLinksInfo['tag'])) {
+            $step = $this->stackLinksInfo['url'][$textIter->get_line()]['step'];
+            $this->showStoryStep($step);
+            $this->pointer = $step;
+        }
     }
 
     public function jump ()
@@ -513,7 +552,7 @@ class GTK_XdTrace
     protected function startProgressBar()
     {
         $dialog = new GtkDialog('Work in progress...',
-            null, Gtk::DIALOG_MODAL); // create a new dialog
+            null, Gtk::DIALOG_MODAL);
         $top_area = $dialog->vbox;
         $top_area->pack_start(new GtkLabel(
             'Please hold on while processing data...'));
@@ -521,25 +560,25 @@ class GTK_XdTrace
         $this->progressBar->set_orientation(Gtk::PROGRESS_LEFT_TO_RIGHT);
         $top_area->pack_start($this->progressBar, 0, 0);
         $dialog->set_has_separator(false);
-        $dialog->show_all(); // show the dialog
-        $this->dialog = $dialog; // keep a copy of the dialog ID
+        $dialog->show_all();
+        $this->dialog = $dialog;
 
         $dialog->connect('delete-event',
-            array( &$this, "onDeleteEvent")); // note 3
+            array( &$this, "onDeleteEvent"));
 
         while (Gtk::events_pending()) {Gtk::main_iteration();}
     }
 
     // function that is called when user closes the progress bar dialog
     public function onDeleteEvent($widget, $event) {
-        $this->dialog->destroy(); // close the dialog
-        // any other clean-up that you may want to do
+        $this->dialog->destroy();
+
         return true;
     }
 
     protected function stopProgressBar()
     {
-        $this->dialog->destroy(); // yes, all done. close the dialog
+        $this->dialog->destroy();
     }
 
     protected function updateProgressBar()
@@ -555,19 +594,27 @@ class GTK_XdTrace
     {
         $stackTrace = "";
         $functionCount = 0;
+        $links = array();
 
         $treeLevel = $this->steps[$stepIndex]['treeLevel'];
 
         for ($i = $stepIndex - 1; $i > 0; $i --) {
             $subTreeLevel = $this->steps[$i]['treeLevel'];
             if ($subTreeLevel < $treeLevel) {
+                $link = array();
                 $treeLevel = $subTreeLevel;
-                $stackTrace .= "#" . $functionCount . "  " . substr($this->steps[$i]['function'], 0, strpos($this->steps[$i]['function'], '(')) . "() called at [" . $this->steps[$i]['filename'] . ":" . $this->steps[$i]['line'] . "]\n";
+                $stackTrace .= "#" . $functionCount . "  " . substr($this->steps[$i]['function'], 0, strpos($this->steps[$i]['function'], '(')) . "() called at [";
+                $link['startOffset'] = strlen($stackTrace);
+                $subStackTrace = $i . ":" . $this->steps[$i]['filename'] . ":" . $this->steps[$i]['line'] . "]\n";
+                $link['endOffset'] = $link['startOffset'] + strlen($subStackTrace) - 2;
+                $link['step'] = $i;
+                $stackTrace .= $subStackTrace;
                 $functionCount++;
+                $links[] = $link;
             }
         }
 
-        return $stackTrace;
+        return array('buffer' => $stackTrace, 'linksInformation' => $links);
     }
 
     protected function processTraceFile ()

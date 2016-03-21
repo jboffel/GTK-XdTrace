@@ -1,4 +1,43 @@
 <?php
+/*
+ *  Copyright (C) 2013  Jeannie Boffel <jboffel@gmail.com>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/*
+ * Exception to the previous licence.
+ * This list of function is subject of the following license: addToFunction, getFunctions, addStatsExit, addStatsEnter
+ *
+   +----------------------------------------------------------------------+
+   | Xdebug                                                               |
+   +----------------------------------------------------------------------+
+   | Copyright (c) 2002-2016 Derick Rethans                               |
+   +----------------------------------------------------------------------+
+   | This source file is subject to version 1.01 of the Xdebug license,   |
+   | that is bundled with this package in the file LICENSE, and is        |
+   | available at through the world-wide-web at                           |
+   | http://xdebug.derickrethans.nl/license.php                           |
+   | If you did not receive a copy of the Xdebug license and are unable   |
+   | to obtain it through the world-wide-web, please send a note to       |
+   | xdebug@derickrethans.nl so we can mail you a copy immediately.       |
+   +----------------------------------------------------------------------+
+   | Authors:  Derick Rethans <derick@xdebug.org>                         |
+   +----------------------------------------------------------------------+
+ */
+
 ini_set('memory_limit', '2048M');
 
 $glade = new GladeXML(dirname(__FILE__) . '/GTK-XdTrace3.glade');
@@ -36,6 +75,30 @@ class GTK_XdTrace
 
     protected $stackLinksInfo = array();
 
+    protected $sortKeyGetFunction = null;
+
+    protected $cursors = array();
+
+    protected $filterModels = array();
+
+    //Thanks Derick @http://xdebug.org
+    /**
+     * Stores the last function, time and memory for the entry point per
+     * stack depth. int=>array(string, float, int).
+     */
+    protected $stack;
+
+    /**
+     * Stores per function the total time and memory increases and calls
+     * string=>array(float, int, int)
+     */
+    protected $functions;
+
+    /**
+     * Stores which functions are on the stack
+     */
+    protected $stackFunctions;
+
     function __construct ($glade)
     {
         $this->glade = $glade;
@@ -50,6 +113,9 @@ class GTK_XdTrace
         $combo->set_active(0);
 
         $this->count = 0;
+
+        $this->cursors['link'] = new GdkCursor(Gdk::HAND2);
+        $this->cursors['textView'] = new GdkCursor(Gdk::XTERM);
     }
 
     public function openFile ($obj)
@@ -83,6 +149,17 @@ class GTK_XdTrace
         $this->previousFile = array();
 
         $this->stackLinksInfo = array();
+
+        $this->stack = array();
+
+        $this->stack[-1] = array( '', 0, 0, 0, 0 );
+        $this->stack[ 0] = array( '', 0, 0, 0, 0 );
+
+        $this->stackFunctions = array();
+
+        $this->sortKeyGetFunction = null;
+
+        $this->filterModels = array();
 
         $this->startProgressBar();
 
@@ -397,7 +474,6 @@ class GTK_XdTrace
         return $filename;
     }
 
-
     protected function showStoryStep ($step)
     {
         if ($step < 0 || $step > count($this->steps))
@@ -428,20 +504,20 @@ class GTK_XdTrace
 
             $view->set_show_line_numbers(1);
 
-            $tag_table = $buffer->get_tag_table();
-            $blue_tag = new GtkTextTag('colorLine');
-            $blue_tag->set_property('background', "#f2e911");
-            $tag_table->add($blue_tag);
+            $tagTable = $buffer->get_tag_table();
+            $blueTag = new GtkTextTag('colorLine');
+            $blueTag->set_property('background', "#f2e911");
+            $tagTable->add($blueTag);
         } else {
 
             $fileArray = $this->previousFile['fileArray'];
 
             $buffer = $this->glade->get_widget('sourcecode')->get_buffer();
 
-            $tag_table = $buffer->get_tag_table();
-            $blue_tag = $tag_table->lookup('colorLine');
+            $tagTable = $buffer->get_tag_table();
+            $blueTag = $tagTable->lookup('colorLine');
 
-            $buffer->remove_tag($blue_tag, $buffer->get_start_iter(), $buffer->get_end_iter());
+            $buffer->remove_tag($blueTag, $buffer->get_start_iter(), $buffer->get_end_iter());
         }
 
         $this->glade->get_widget('window1')
@@ -462,7 +538,7 @@ class GTK_XdTrace
 
         $end = $buffer->get_iter_at_line_offset($this->steps[$step]['line']-1, $length);
 
-        $buffer->apply_tag($blue_tag, $start, $end);
+        $buffer->apply_tag($blueTag, $start, $end);
 
         $mark = $buffer->create_mark('active_line', $start, false);
 
@@ -497,29 +573,29 @@ class GTK_XdTrace
         $buffer = $this->glade->get_widget('stacktrace')
             ->get_buffer();
 
-        $tag_table = $buffer->get_tag_table();
+        $tagTable = $buffer->get_tag_table();
 
-        $link_tag = $tag_table->lookup('link');
+        $linkTag = $tagTable->lookup('link');
 
-        if ($link_tag === NULL) {
-            $link_tag = new GtkTextTag('link');
-            $link_tag->set_property('foreground', "#0000ff");
-            $link_tag->set_property('underline', Pango::UNDERLINE_SINGLE);
-            $tag_table->add($link_tag);
-            $link_tag->connect('event',
+        if ($linkTag === NULL) {
+            $linkTag = new GtkTextTag('link');
+            $linkTag->set_property('foreground', "#0000ff");
+            $linkTag->set_property('underline', Pango::UNDERLINE_SINGLE);
+            $tagTable->add($linkTag);
+            $linkTag->connect('event',
                 array( &$this, "onTagLinkEvent"));
         } else {
-            $buffer->remove_tag($link_tag, $buffer->get_start_iter(), $buffer->get_end_iter());
+            $buffer->remove_tag($linkTag, $buffer->get_start_iter(), $buffer->get_end_iter());
         }
 
         $buffer->set_text($stackDetails['buffer']);
 
         foreach($stackDetails['linksInformation'] as $link) {
-            $buffer->apply_tag($link_tag, $buffer->get_iter_at_offset($link['startOffset']), $buffer->get_iter_at_offset($link['endOffset']));
+            $buffer->apply_tag($linkTag, $buffer->get_iter_at_offset($link['startOffset']), $buffer->get_iter_at_offset($link['endOffset']));
         }
 
         $this->stackLinksInfo['url'] = $stackDetails['linksInformation'];
-        $this->stackLinksInfo['tag'] = $link_tag;
+        $this->stackLinksInfo['tag'] = $linkTag;
     }
 
     public function onTagLinkEvent($textTag, $gtkObject, $event, $textIter)
@@ -528,6 +604,21 @@ class GTK_XdTrace
             $step = $this->stackLinksInfo['url'][$textIter->get_line()]['step'];
             $this->showStoryStep($step);
             $this->pointer = $step;
+        }
+    }
+
+    public function stackLinkCursorChange($view, $event)
+    {
+        $bufferLocation = $view->window_to_buffer_coords
+        (Gtk::TEXT_WINDOW_TEXT, $event->x, $event->y);
+        $textIter = $view->get_iter_at_location(
+            $bufferLocation[0], $bufferLocation[1]);
+        if ($textIter==null || $this->stackLinksInfo['tag'] === null) return;
+
+        if ($textIter->has_tag($this->stackLinksInfo['tag'])) {
+            $view->get_window(Gtk::TEXT_WINDOW_TEXT)->set_cursor($this->cursors['link']);
+        } else {
+            $view->get_window(Gtk::TEXT_WINDOW_TEXT)->set_cursor($this->cursors['textView']);
         }
     }
 
@@ -605,7 +696,7 @@ class GTK_XdTrace
                 $treeLevel = $subTreeLevel;
                 $stackTrace .= "#" . $functionCount . "  " . substr($this->steps[$i]['function'], 0, strpos($this->steps[$i]['function'], '(')) . "() called at [";
                 $link['startOffset'] = strlen($stackTrace);
-                $subStackTrace = $i . ":" . $this->steps[$i]['filename'] . ":" . $this->steps[$i]['line'] . "]\n";
+                $subStackTrace = /*$i . ":" . */$this->steps[$i]['filename'] . ":" . $this->steps[$i]['line'] . "]\n";
                 $link['endOffset'] = $link['startOffset'] + strlen($subStackTrace) - 2;
                 $link['step'] = $i;
                 $stackTrace .= $subStackTrace;
@@ -617,6 +708,275 @@ class GTK_XdTrace
         return array('buffer' => $stackTrace, 'linksInformation' => $links);
     }
 
+    public function displayStats()
+    {
+        $window = new GtkWindow();
+        $window->set_size_request(1024, 768);
+        //$window->connect_simple('destroy', array('Gtk','main_quit'));
+        $window->add($vbox = new GtkVBox());
+
+        // display title
+        $title = new GtkLabel("Trace file statistics by Derick\n".
+            "             http://xdebug.org");
+        $title->modify_font(new PangoFontDescription("Times New Roman Italic 10"));
+        $title->modify_fg(Gtk::STATE_NORMAL, GdkColor::parse("#0000ff"));
+        $title->set_size_request(-1, 40);
+        $vbox->pack_start($title, 0, 0);
+        $vbox->pack_start(new GtkLabel(), 0, 0);
+        $entry = new GtkEntry();
+        //$entry->set_size_request(50);
+        $entry->connect('changed', array(&$this, 'statsViewFuncFilter2'));
+        $hbox = new GtkHBox();
+        $hbox->pack_start(new GtkLabel("Filter on function name (regex): "), 0, 0);
+        $hbox->pack_start($entry, 0, 0);
+        $vbox->pack_start($hbox, 0, 0);
+
+        $data = $this->getFunctions();
+
+        $view = $this->displayTable($vbox, $data);
+
+        $view->set_enable_search(true);
+        $view->set_search_column(0);
+        $view->set_search_equal_func(array(&$this, 'statsViewFuncFilter'));
+
+        $this->filterModels['entry'] = $entry;
+
+        $window->show_all();
+    }
+
+    public function statsViewFuncFilter2($data)
+    {
+        $key = $this->filterModels['entry']->get_text();
+
+        $key = str_replace('\\', '\\\\', $key);
+
+        $n = $this->filterModels['store']->iter_n_children(NULL);
+        for($i=0; $i<$n; ++$i) {
+            $iter = $this->filterModels['store']->get_iter($i);
+            $val = $this->filterModels['store']->get_value($iter, 0);
+            $this->filterModels['store']->set($iter, 8, 1);
+            if (@preg_match("|$key|i", $val)) {
+                $this->filterModels['store']->set($iter, 8, 1);
+            } else {
+                $this->filterModels['store']->set($iter, 8, 0);
+            }
+        }
+    }
+
+    public function statsViewFuncFilter($model, $column, $key, $iter)
+    {
+        $val = $model->get_value($iter, $column);
+        $val = strip_tags($val);
+        if (preg_match("|$key|i", $val)) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    protected function displayTable($vbox, $data) {
+
+        // Set up a scroll window
+        $scrolled_win = new GtkScrolledWindow();
+        $scrolled_win->set_policy( Gtk::POLICY_AUTOMATIC,
+            Gtk::POLICY_AUTOMATIC);
+        $vbox->pack_start($scrolled_win);
+
+        // Creates the list store
+        $model = new GtkListStore(GObject::TYPE_STRING, GObject::TYPE_LONG,
+            GObject::TYPE_DOUBLE, GObject::TYPE_LONG, GObject::TYPE_DOUBLE, GObject::TYPE_LONG, GObject::TYPE_DOUBLE, GObject::TYPE_LONG, GObject::TYPE_BOOLEAN);
+
+        $this->filterModels['store'] = $model;
+
+        $fieldHeader = array('Function name', 'calls', 'time inclusive', 'memory inclusive', 'time children', 'memory children', 'time own', 'memory own');
+        $fieldJustification = array(0.0,       0.5,        1.0,            1.0,                 1.0,            1.0,                1.0,          1.0);
+
+        $modelFilter = new GtkTreeModelFilter($model);
+        $modelFilter->set_visible_column(8);
+
+        $modelSort = new GtkTreeModelSort($modelFilter);
+        $modelSort->set_sort_column_id(1, Gtk::SORT_DESCENDING);
+
+        // Creates the view to display the list store
+        $view = new GtkTreeView($modelSort);
+
+        $scrolled_win->add($view);
+
+        // Creates the columns
+        for ($col=0; $col<count($fieldHeader); ++$col) {
+            $cellRenderer = new GtkCellRendererText();
+            $cellRenderer->set_property("xalign", $fieldJustification[$col]);
+            $column = new GtkTreeViewColumn($fieldHeader[$col],
+                $cellRenderer, 'text', $col);
+
+            $column->set_resizable(true);
+
+            if ($col == 0) {
+                $column->set_fixed_width(400);
+                $column->set_max_width(-1);
+                $column->set_min_width(50);
+                $column->set_sizing(Gtk::TREE_VIEW_COLUMN_FIXED);
+            }
+
+            $column->set_expand(true);
+
+            $column->set_alignment($fieldJustification[$col]);
+            $column->set_sort_column_id($col);
+
+            // set the header font and color
+            $label = new GtkLabel($fieldHeader[$col]);
+            $label->modify_font(new PangoFontDescription("Arial Bold"));
+            $label->modify_fg(Gtk::STATE_NORMAL, GdkColor::parse("#0000FF"));
+            $column->set_widget($label);
+            $label->show();
+
+            // setup self-defined function to display alternate row color
+            $column->set_cell_data_func($cellRenderer, array(&$this, "formatCol"));
+            $view->append_column($column);
+        }
+
+        // pupulates the data
+        for ($row=0; $row<count($data); ++$row) {
+            $values = array();
+            for ($col=0; $col<count($data[$row]); ++$col) {
+                $values[] = $data[$row][$col];
+            }
+            $model->append($values);
+        }
+
+        return $view;
+    }
+
+    // self-defined function to display alternate row color
+    public function formatCol($column, $cell, $model, $iter) {
+        $path = $model->get_path($iter);
+        $rowNum = $path[0];
+        $rowColor = ($rowNum%2==1) ? '#dddddd' : '#ffffff';
+        $cell->set_property('cell-background', $rowColor);
+    }
+
+    protected function addToFunction( $function, $time, $memory, $nestedTime, $nestedMemory )
+    {
+        if ( !isset( $this->functions[$function] ) )
+        {
+            $this->functions[$function] = array( 0, 0, 0, 0, 0 );
+        }
+
+        $elem = &$this->functions[$function];
+        $elem[0]++;
+        if ( !in_array( $function, $this->stackFunctions ) ) {
+            $elem[1] += $time;
+            $elem[2] += $memory;
+            $elem[3] += $nestedTime;
+            $elem[4] += $nestedMemory;
+        }
+    }
+
+    protected function getFunctions()
+    {
+        $result = array();
+
+        if (!is_array($this->functions)) return $result;
+
+        foreach ( $this->functions as $name => $function )
+        {
+            $result[] = array(
+                $name,
+                $function[0],
+                $function[1],
+                $function[2],
+                $function[3],
+                $function[4],
+                $function[1] - $function[3],
+                $function[2] - $function[4],
+                1
+            );
+        }
+
+        return $result;
+    }
+
+    protected function processLineHumanEntry($buffer, &$steps)
+    {
+        $res = preg_match('/^\s+([0-9.]+)\s+([0-9]+)\s+([0-9+-]+)(\s+)->\s+(.*)\s(.*):([0-9]+).*$/', $buffer,
+            $steps);
+
+        $steps[4] = (strlen($steps[4]) - 3) / 2;
+
+        $steps[6] = str_replace(DIRECTORY_SEPARATOR, '/', $steps[6]);
+
+        return $res;
+    }
+
+    protected function processLineHumanReturn($buffer, &$steps, $padding)
+    {
+        $res = preg_match('/^(\s+([0-9.]+)\s+([0-9]+)\s+)>=>\s(.*)$/', $buffer, $steps);
+
+        $steps[1] = (strlen($steps[1]) - $padding) / 2;
+
+        return $res;
+    }
+
+    protected function processLineComputerEntry($buffer, &$steps)
+    {
+        $parts = explode("\t", $buffer);
+
+        if (count($parts) < 5 || $parts[2] != '0') {
+            return false;
+        }
+
+        $steps[4] = $parts[0];
+        $steps[5] = $parts[5] . '(';
+
+        $steps[1] = $parts[3];
+        $steps[2] = $parts[4];
+        $steps[3] = $steps[2] - $this->steps[count($this->steps)-1]['memoryUsage'];
+        if ($steps[3] >= 0)
+            $steps[3] = "+" . $steps[3];
+        $steps[6] = str_replace(DIRECTORY_SEPARATOR, '/', $parts[8]);
+        $steps[7] = $parts[9];
+
+        if ($parts[10] > 0) {
+            $steps[5] .= implode(", ", array_slice($parts, 11));
+            $steps[5] = substr($steps[5], 0, -1);
+        }
+
+        if (!empty($parts[7])) {
+            $steps[5] .= $parts[7];
+        }
+
+        $steps[5] .= ')';
+
+        return true;
+
+    }
+
+    protected function processLineComputerReturn($buffer, &$steps, &$handle)
+    {
+        $parts = explode( "\t", $buffer );
+
+        if ( count( $parts ) < 5 || $parts[2] != '1') {
+            return false;
+        }
+
+        $steps[1] = $parts[0];
+        $steps[2] = $parts[3];
+        $steps[3] = $parts[4];
+
+        if (($buffer2 = fgets($handle)) !== false) {
+            $parts = explode( "\t", $buffer2 );
+
+            if ($parts['2'] == 'R') {
+                $steps[4] = $parts[5];
+            } else {
+                fseek($handle, -1*strlen($buffer2), SEEK_CUR);
+            }
+        }
+
+        return true;
+
+    }
+
     protected function processTraceFile ()
     {
         $this->steps = array();
@@ -624,53 +984,73 @@ class GTK_XdTrace
         $handle = @fopen($this->fileName, "r");
         if ($handle) {
             $i = 0;
-            $padding = 0;
             $offset = 0;
             $stats = fstat($handle);
             $fileSize = $stats['size'];
             $lastPercent = 0;
+            $computerFormat = false;
+
+            $padding = 0;
+
+            if (preg_match("/^Version: /", fgets($handle))) {
+                $computerFormat = true;
+            }
 
             while (($buffer = fgets($handle)) !== false) {
                 $offset += strlen($buffer);
                 $this->currentProgress = $offset / $fileSize;
                 $currentPercent = round($this->currentProgress * 100);
+
                 if ($currentPercent > $lastPercent && $currentPercent % 2 == 0) {
                     $lastPercent = $currentPercent;
                     $this->updateProgressBar();
                 }
-                $res = preg_match('/^\s+([0-9.]+)\s+([0-9]+)\s+([0-9+-]+)(\s+)->\s+(.*)\s(.*):([0-9]+).*$/', $buffer,
-                    $steps);
+
+                if ($computerFormat) {
+                    $res = $this->processLineComputerEntry($buffer, $steps);
+                } else {
+                    $res = $this->processLineHumanEntry($buffer, $steps);
+                }
+
                 if ($res) {
                     $this->steps[] = array(
                         'timeLaps' => $steps[1],
                         'memoryUsage' => $steps[2],
                         'memoryDelta' => $steps[3],
-                        'treeLevel' => (strlen($steps[4]) - 3) / 2,
+                        'treeLevel' => $steps[4],
                         'function' => $steps[5],
-                        'filename' => str_replace(DIRECTORY_SEPARATOR, '/', $steps[6]),
+                        'filename' => $steps[6],
                         'line' => $steps[7],
                         'line2' => $i,
                         'returnValue' => NULL
                     );
-                    $this->globalFileNameListInOrder[] = str_replace(DIRECTORY_SEPARATOR, '/', $steps[6]);
+                    $this->globalFileNameListInOrder[] = $steps[6];
+
+                    $this->addStatsEnter($steps);
                 }
-                $res = preg_match('/^(\s+([0-9.]+)\s+([0-9]+)\s+)>=>\s(.*)$/', $buffer, $retValue);
+
+                if ($computerFormat) {
+                    $res = $this->processLineComputerReturn($buffer, $retValue, $handle);
+                } else {
+                    $res = $this->processLineHumanReturn($buffer, $retValue, $padding);
+                }
+
                 if ($res) {
-//                     $this->retValue[] = array(
-//                         'treeLevel' => (strlen($retValue[1]) - $padding) / 2,
-//                         'retValue' => $retValue[2],
-//                         'line' => $i
-//                     );
+
+                    $otherTreeLevel = $retValue[1];
+
                     for ($w = count($this->steps) - 1; $w > 0; $w --) {
                         $treeLevel = $this->steps[$w]['treeLevel'];
-                        $otherTreeLevel = (strlen($retValue[1]) - $padding) / 2;
                         if ($treeLevel == $otherTreeLevel) {
                             break;
                         }
                     }
                     $this->steps[$w]['returnValue'] = $retValue[4];
+
+                    $this->addStatsExit($otherTreeLevel, $retValue);
                 }
-                if ($i == 1) {
+                //Only use in human format
+                if ($i == 0) {
                     $padding = strlen($buffer) - strlen(strstr($buffer, '->'));
                 }
                 $i ++;
@@ -680,6 +1060,43 @@ class GTK_XdTrace
             }
             fclose($handle);
         }
+    }
+
+    /**
+     * @param $otherTreeLevel
+     * @param $retValue
+     */
+    protected function addStatsExit($otherTreeLevel, $retValue)
+    {
+        list($funcName, $prevTime, $prevMem, $nestedTime, $nestedMemory) = $this->stack[$otherTreeLevel];
+
+        // collapse data onto functions array
+        $time = $retValue[2];
+        $memory = $retValue[3];
+        $dTime = $time - $prevTime;
+        $dMemory = $memory - $prevMem;
+
+        $this->stack[$otherTreeLevel - 1][3] += $dTime;
+        $this->stack[$otherTreeLevel - 1][4] += $dMemory;
+
+        array_pop($this->stackFunctions);
+
+        $this->addToFunction($funcName, $dTime, $dMemory, $nestedTime, $nestedMemory);
+    }
+
+    /**
+     * @param $steps
+     */
+    protected function addStatsEnter($steps)
+    {
+        $depth = $steps[4];
+        $time = $steps[1];
+        $memory = $steps[2];
+        $funcName = substr($steps[5], 0, strpos($steps[5], '('));
+
+        $this->stack[$depth] = array($funcName, $time, $memory, 0, 0);
+
+        array_push($this->stackFunctions, $funcName);
     }
 }
 

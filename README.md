@@ -28,7 +28,7 @@ I recommend that configuration for Xdebug trace parameters :
 
 <pre>
 xdebug.trace_enable_trigger = 1
-xdebug.trace_format = 0
+xdebug.trace_format = 1
 xdebug.trace_output_name = "xdebug_trace.%p.%s.%u"
 xdebug.collect_params = 4
 xdebug.show_mem_delta = 1

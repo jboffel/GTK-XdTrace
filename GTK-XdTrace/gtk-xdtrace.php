@@ -157,6 +157,8 @@ class GTK_XdTrace
 
         $this->stackFunctions = array();
 
+        $this->functions = array();
+
         $this->sortKeyGetFunction = null;
 
         $this->filterModels = array();

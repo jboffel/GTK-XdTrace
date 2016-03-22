@@ -58,3 +58,8 @@ Interface looks like that :
 
 ![Alt text](screenshoot.png)
 
+Known bug:
+
+Currently when loading a file generated in trace_format = 0 the new functionality "Stats" is not accurate and should not be used.
+When a function return no value (void) the file does not generate any return value so the function exit is missed.
+However it does not affect the "debugger" mode.

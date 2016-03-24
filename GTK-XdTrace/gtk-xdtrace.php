@@ -40,7 +40,9 @@
 
 ini_set('memory_limit', '2048M');
 
-$glade = new GladeXML(dirname(__FILE__) . '/GTK-XdTrace3.glade');
+$gtkBuilder = new GtkBuilder();
+
+$gtkBuilder->add_from_file(dirname(__FILE__) . '/GTK-XdTrace3.gtkbuilder');
 
 class GTK_XdTrace
 {
@@ -103,13 +105,13 @@ class GTK_XdTrace
     {
         $this->glade = $glade;
 
-        $combo = $this->glade->get_widget('steptofile');
+        $combo = $this->glade->get_object('steptofile');
         $combo->set_active(0);
-        $combo = $this->glade->get_widget('steptostepline');
+        $combo = $this->glade->get_object('steptostepline');
         $combo->set_active(0);
-        $combo = $this->glade->get_widget('mapfolderprefix');
+        $combo = $this->glade->get_object('mapfolderprefix');
         $combo->set_active(0);
-        $combo = $this->glade->get_widget('listofmap');
+        $combo = $this->glade->get_object('listofmap');
         $combo->set_active(0);
 
         $this->count = 0;
@@ -180,7 +182,7 @@ class GTK_XdTrace
 
     protected function showFileStepList ()
     {
-        $combo = $this->glade->get_widget('steptofile');
+        $combo = $this->glade->get_object('steptofile');
         $store = new GtkListStore(Gobject::TYPE_STRING);
         $combo->set_model($store);
 
@@ -192,7 +194,7 @@ class GTK_XdTrace
 
         $combo = new GtkEntryCompletion();
 
-        $entry = $this->glade->get_widget('selectfolderautocomplete');
+        $entry = $this->glade->get_object('selectfolderautocomplete');
 
         $entry->set_completion($combo);
 
@@ -215,7 +217,7 @@ class GTK_XdTrace
     {
         $folder = $model->get_value($iter, 0);
 
-        $combo = $this->glade->get_widget('mapfolderprefix');
+        $combo = $this->glade->get_object('mapfolderprefix');
 
         $index = array_search($folder, $this->folderToMap);
 
@@ -233,7 +235,7 @@ class GTK_XdTrace
     {
         $folder = $model->get_value($iter, 0);
 
-        $combo = $this->glade->get_widget('steptofile');
+        $combo = $this->glade->get_object('steptofile');
 
         $index = array_search($folder, $this->folderToMapBkP);
 
@@ -281,7 +283,7 @@ class GTK_XdTrace
 
     protected function showFolderToMap ()
     {
-        $combo = $this->glade->get_widget('mapfolderprefix');
+        $combo = $this->glade->get_object('mapfolderprefix');
         $store = new GtkListStore(Gobject::TYPE_STRING);
         $combo->set_model($store);
         $tmp = array_unique($this->globalFileNameListInOrder);
@@ -298,7 +300,7 @@ class GTK_XdTrace
 
         $combo = new GtkEntryCompletion();
 
-        $entry = $this->glade->get_widget('selectfolderinlist');
+        $entry = $this->glade->get_object('selectfolderinlist');
 
         $entry->set_completion($combo);
 
@@ -318,7 +320,7 @@ class GTK_XdTrace
 
     public function showMapFileChooserBox()
     {
-        $combo = $this->glade->get_widget('mapfolderprefix');
+        $combo = $this->glade->get_object('mapfolderprefix');
         $filename = $combo->get_active_text();
 
         if ("List of folder mappable" != $filename) {
@@ -339,12 +341,12 @@ class GTK_XdTrace
 
     public function deleteOneMapping()
     {
-        $combo = $this->glade->get_widget('listofmap');
+        $combo = $this->glade->get_object('listofmap');
         $map = $combo->get_active_text();
 
         if ("List of existing map" != $map) {
 
-            $dialog = new GtkMessageDialog($this->glade->get_widget('window1'), Gtk::DIALOG_NO_SEPARATOR, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_OK_CANCEL, "Delete selected mapping?");
+            $dialog = new GtkMessageDialog($this->glade->get_object('window1'), Gtk::DIALOG_NO_SEPARATOR, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_OK_CANCEL, "Delete selected mapping?");
             $dialog->show_all();
             if ($dialog->run() == Gtk::RESPONSE_OK) {
                 foreach($this->listOfMapping as $origin => $destination) {
@@ -354,7 +356,7 @@ class GTK_XdTrace
                     }
                 }
             } else {
-                $combo = $this->glade->get_widget('listofmap');
+                $combo = $this->glade->get_object('listofmap');
                 $combo->set_active(0);
             }
             $dialog->destroy();
@@ -363,7 +365,7 @@ class GTK_XdTrace
 
     protected function fillListOfMap()
     {
-        $combo = $this->glade->get_widget('listofmap');
+        $combo = $this->glade->get_object('listofmap');
         $store = new GtkListStore(Gobject::TYPE_STRING);
         $combo->set_model($store);
 
@@ -378,7 +380,7 @@ class GTK_XdTrace
 
     public function showComboStep ()
     {
-        $combo = $this->glade->get_widget('steptostepline');
+        $combo = $this->glade->get_object('steptostepline');
         $stepraw = $combo->get_active_text();
 
         $step = substr($stepraw, 6, strpos($stepraw, ',') - 6);
@@ -390,10 +392,10 @@ class GTK_XdTrace
 
     public function showStepsInCB2 ()
     {
-        $combo = $this->glade->get_widget('steptofile');
+        $combo = $this->glade->get_object('steptofile');
         $filename = $combo->get_active_text();
 
-        $combo = $this->glade->get_widget('steptostepline');
+        $combo = $this->glade->get_object('steptostepline');
         $store = new GtkListStore(Gobject::TYPE_STRING);
         $combo->set_model($store);
 
@@ -490,7 +492,7 @@ class GTK_XdTrace
             $lang = $lang_mgr->get_language_from_mime_type("application/x-php");
             $buffer = GtkSourceBuffer::new_with_language($lang);
             $buffer->set_highlight(1);
-            $view = $this->glade->get_widget('sourcecode');
+            $view = $this->glade->get_object('sourcecode');
             $view->set_buffer($buffer);
 
 
@@ -514,7 +516,7 @@ class GTK_XdTrace
 
             $fileArray = $this->previousFile['fileArray'];
 
-            $buffer = $this->glade->get_widget('sourcecode')->get_buffer();
+            $buffer = $this->glade->get_object('sourcecode')->get_buffer();
 
             $tagTable = $buffer->get_tag_table();
             $blueTag = $tagTable->lookup('colorLine');
@@ -522,7 +524,7 @@ class GTK_XdTrace
             $buffer->remove_tag($blueTag, $buffer->get_start_iter(), $buffer->get_end_iter());
         }
 
-        $this->glade->get_widget('window1')
+        $this->glade->get_object('window1')
             ->set_title($this->steps[$step]['filename']);
 
         $this->currentFile = $fileArray;
@@ -544,35 +546,35 @@ class GTK_XdTrace
 
         $mark = $buffer->create_mark('active_line', $start, false);
 
-        $this->glade->get_widget('sourcecode')
+        $this->glade->get_object('sourcecode')
             ->scroll_to_mark($mark, 0.4);
 
-        $buffer = $this->glade->get_widget('memoryusage')
+        $buffer = $this->glade->get_object('memoryusage')
             ->get_buffer();
 
         $buffer->set_text($this->steps[$step]['memoryUsage'] . ' -> ' . $this->steps[$step]['memoryDelta']);
 
-        $buffer = $this->glade->get_widget('time')
+        $buffer = $this->glade->get_object('time')
             ->get_buffer();
 
         $buffer->set_text($this->steps[$step]['timeLaps']);
 
-        $buffer = $this->glade->get_widget('currentinstruction')
+        $buffer = $this->glade->get_object('currentinstruction')
             ->get_buffer();
 
         $buffer->set_text($this->steps[$step]['function']);
 
-        $buffer = $this->glade->get_widget('returncurrentinstruction')
+        $buffer = $this->glade->get_object('returncurrentinstruction')
             ->get_buffer();
 
         $buffer->set_text($this->steps[$step]['returnValue']);
 
-        $this->glade->get_widget('totalsteps')
+        $this->glade->get_object('totalsteps')
             ->set_text($step . '/' . count($this->steps));
 
         $stackDetails = $this->generateStepStackTrace($step);
 
-        $buffer = $this->glade->get_widget('stacktrace')
+        $buffer = $this->glade->get_object('stacktrace')
             ->get_buffer();
 
         $tagTable = $buffer->get_tag_table();
@@ -626,7 +628,7 @@ class GTK_XdTrace
 
     public function jump ()
     {
-        $step = $this->glade->get_widget('jumptostep')
+        $step = $this->glade->get_object('jumptostep')
             ->get_text();
 
         if ($step < 0 || $step > count($this->steps) || ! is_numeric($step) || $step == '')
@@ -634,7 +636,7 @@ class GTK_XdTrace
 
         if ($step > count($this->steps)) {
             $step = count($this->steps);
-            $step = $this->glade->get_widget('jumptostep')
+            $step = $this->glade->get_object('jumptostep')
                 ->set_text(count($this->steps));
         }
 
@@ -1141,9 +1143,9 @@ class GTK_XdTrace
     }
 }
 
-$glade->signal_autoconnect_instance(new GTK_XdTrace($glade));
+$gtkBuilder->connect_signals_instance(new GTK_XdTrace($gtkBuilder));
 
-$glade->get_widget('window1')
+$gtkBuilder->get_object('window1')
     ->connect_simple('destroy', array(
         'Gtk',
         'main_quit'

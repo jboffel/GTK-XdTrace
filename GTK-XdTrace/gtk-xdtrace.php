@@ -83,7 +83,7 @@ class GTK_XdTrace
 
     //Thanks Derick @http://xdebug.org
     /**
-     * Stores the last function, time and memory for the entry point per
+     * Stores the last function, time, memory for the entry point per
      * stack depth. int=>array(string, float, int).
      */
     protected $stack;
@@ -152,8 +152,8 @@ class GTK_XdTrace
 
         $this->stack = array();
 
-        $this->stack[-1] = array( '', 0, 0, 0, 0 );
-        $this->stack[ 0] = array( '', 0, 0, 0, 0 );
+        $this->stack[-1] = array( '', 0, 0, 0, 0, 0 );
+        $this->stack[ 0] = array( '', 0, 0, 0, 0, 0 );
 
         $this->stackFunctions = array();
 
@@ -866,6 +866,7 @@ class GTK_XdTrace
 
         $elem = &$this->functions[$function];
         $elem[0]++;
+
         if ( !in_array( $function, $this->stackFunctions ) ) {
             $elem[1] += $time;
             $elem[2] += $memory;
@@ -903,7 +904,7 @@ class GTK_XdTrace
         $res = preg_match('/^\s+([0-9.]+)\s+([0-9]+)\s+([0-9+-]+)(\s+)->\s+(.*)\s(.*):([0-9]+).*$/', $buffer,
             $steps);
 
-        $steps[4] = (strlen($steps[4]) - 3) / 2;
+        $steps[4] = (strlen($steps[4]) - 3) / 2 + 1;
 
         $steps[6] = str_replace(DIRECTORY_SEPARATOR, '/', $steps[6]);
 
@@ -914,7 +915,15 @@ class GTK_XdTrace
     {
         $res = preg_match('/^(\s+([0-9.]+)\s+([0-9]+)\s+)>=>\s(.*)$/', $buffer, $steps);
 
-        $steps[1] = (strlen($steps[1]) - $padding) / 2;
+        $steps[1] = (strlen($steps[1]) - $padding) / 2 + 1;
+
+//        if (!$res) {
+//            //Check if it is last line of the trace file to clean the stats
+//            $res2 = preg_match('/^\s+([0-9.]+)\s+([0-9]+)$/', $buffer, $steps2);
+//            if ($res2) {
+//                $this->addStatsExit(1, array(2 => $steps2[1], 3 => $steps2[2]));
+//            }
+//        }
 
         return $res;
     }
@@ -1015,6 +1024,7 @@ class GTK_XdTrace
                 }
 
                 if ($res) {
+                    $this->count1++;
                     $this->steps[] = array(
                         'timeLaps' => $steps[1],
                         'memoryUsage' => $steps[2],
@@ -1028,6 +1038,37 @@ class GTK_XdTrace
                     );
                     $this->globalFileNameListInOrder[] = $steps[6];
 
+                    if (!$computerFormat) {
+                        /*
+                         * Work around in trace_format = 0 to generate proper stats
+                         */
+                        //Case last function call is deeper depth and still null is stored
+                        //in return value which mean the return value was void
+                        if ($steps[4] < $this->steps[count($this->steps)-2]['treeLevel'] && $this->steps[count($this->steps)-2]['returnValue'] === NULL) {
+                            $this->steps[count($this->steps)-2]['returnValue'] = 'void';
+                            //Minimize inaccuracy. When no return value is given by the trace file
+                            //the data are missing for the memory and time so I just reuse
+                            //the data provided at the entry point...
+                            $tmpSteps[2] = $this->steps[count($this->steps)-2]['timeLaps'];
+                            $tmpSteps[3] = $this->steps[count($this->steps)-2]['memoryUsage'];
+                            $this->addStatsExit($steps[4], $tmpSteps);
+                        }
+
+                        //Case same depth function in stack will overwrite previous one so we take this
+                        //opportunity to check if a return has been received for the previous one and if
+                        //not we just store void and call the add stats exit.
+                        if ($this->stack[$steps[4]][5] > 0 && $this->steps[$this->stack[$steps[4]][5]]['returnValue'] === NULL) {
+                            //Informed in the debugger that the function return void
+                            $this->steps[$this->stack[$steps[4]][5]]['returnValue'] = 'void';
+                            //Minimize inaccuracy. When no return value is given by the trace file
+                            //the data are missing for the memory and time so I just reuse
+                            //the data provided at the entry point...
+                            $tmpSteps[2] = $this->steps[$this->stack[$steps[4]][5]]['timeLaps'];
+                            $tmpSteps[3] = $this->steps[$this->stack[$steps[4]][5]]['memoryUsage'];
+                            $this->addStatsExit($steps[4], $tmpSteps);
+                        }
+                    }
+
                     $this->addStatsEnter($steps);
                 }
 
@@ -1039,18 +1080,14 @@ class GTK_XdTrace
 
                 if ($res) {
 
+                    $this->count2++;
                     $otherTreeLevel = $retValue[1];
 
-                    for ($w = count($this->steps) - 1; $w > 0; $w --) {
-                        $treeLevel = $this->steps[$w]['treeLevel'];
-                        if ($treeLevel == $otherTreeLevel) {
-                            break;
-                        }
-                    }
-                    $this->steps[$w]['returnValue'] = $retValue[4];
+                    $stepNumber = $this->addStatsExit($otherTreeLevel, $retValue);
 
-                    $this->addStatsExit($otherTreeLevel, $retValue);
+                    $this->steps[$stepNumber]['returnValue'] = $retValue[4];
                 }
+
                 //Only use in human format
                 if ($i == 0) {
                     $padding = strlen($buffer) - strlen(strstr($buffer, '->'));
@@ -1070,7 +1107,7 @@ class GTK_XdTrace
      */
     protected function addStatsExit($otherTreeLevel, $retValue)
     {
-        list($funcName, $prevTime, $prevMem, $nestedTime, $nestedMemory) = $this->stack[$otherTreeLevel];
+        list($funcName, $prevTime, $prevMem, $nestedTime, $nestedMemory, $stepNumber) = $this->stack[$otherTreeLevel];
 
         // collapse data onto functions array
         $time = $retValue[2];
@@ -1084,6 +1121,8 @@ class GTK_XdTrace
         array_pop($this->stackFunctions);
 
         $this->addToFunction($funcName, $dTime, $dMemory, $nestedTime, $nestedMemory);
+
+        return $stepNumber;
     }
 
     /**
@@ -1096,7 +1135,7 @@ class GTK_XdTrace
         $memory = $steps[2];
         $funcName = substr($steps[5], 0, strpos($steps[5], '('));
 
-        $this->stack[$depth] = array($funcName, $time, $memory, 0, 0);
+        $this->stack[$depth] = array($funcName, $time, $memory, 0, 0, count($this->steps)-1);
 
         array_push($this->stackFunctions, $funcName);
     }

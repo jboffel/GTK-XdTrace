@@ -60,6 +60,13 @@ Interface looks like that :
 
 Known bug:
 
-Currently when loading a file generated in trace_format = 0 the new functionality "Stats" is not accurate and should not be used.
-When a function return no value (void) the file does not generate any return value so the function exit is missed.
+Currently when loading a file generated in trace_format = 0 the new functionality "Stats" is not accurate and should not be used carefully.
+When a function return no value (void) the file does not generate any return value so the function exit status for memory usage and time spent is missed.
+It may create negative time report in the "own time" report.
+
 However it does not affect the "debugger" mode.
+
+The memory usage is also known to be imperfect due to the difficulty to profile what happen when the garbage collector of PHP is activated (according to Derick @xdebug)
+Then the report may show also negative values.
+
+I would recommend to use those values more as a tendency for proportion than a very accurate number.

@@ -114,8 +114,6 @@ class GTK_XdTrace
         $combo = $this->glade->get_object('listofmap');
         $combo->set_active(0);
 
-        $this->count = 0;
-
         $this->cursors['link'] = new GdkCursor(Gdk::HAND2);
         $this->cursors['textView'] = new GdkCursor(Gdk::XTERM);
     }
@@ -1026,7 +1024,6 @@ class GTK_XdTrace
                 }
 
                 if ($res) {
-                    $this->count1++;
                     $this->steps[] = array(
                         'timeLaps' => $steps[1],
                         'memoryUsage' => $steps[2],
@@ -1081,8 +1078,6 @@ class GTK_XdTrace
                 }
 
                 if ($res) {
-
-                    $this->count2++;
                     $otherTreeLevel = $retValue[1];
 
                     $stepNumber = $this->addStatsExit($otherTreeLevel, $retValue);

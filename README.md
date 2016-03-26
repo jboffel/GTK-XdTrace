@@ -60,7 +60,7 @@ Interface looks like that :
 
 Known bug:
 
-Currently when loading a file generated in trace_format = 0 the new functionality "Stats" is not accurate and should not be used carefully.
+Currently when loading a file generated in trace_format = 0 the new functionality "Stats" is not accurate and should be used carefully.
 When a function return no value (void) the file does not generate any return value so the function exit status for memory usage and time spent is missed.
 It may create negative time report in the "own time" report.
 
